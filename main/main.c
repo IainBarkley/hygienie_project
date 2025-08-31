@@ -37,7 +37,7 @@ void app_main() {
             ESP_LOGI(TAG, "Woke up from timer.");
             if (AppMqttGetNumoffLineReadingCount() > 0 )
             {
-                AppWifiStart();
+                AppWifiInit();
                 AppMqttSendData();
                 AppMqttInitNTPAndSyncTime();
                 AppWifiDisconnect();
