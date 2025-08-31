@@ -11,7 +11,7 @@
 #include "appwifi.h"
 
 static const char *TAG = "App Main";
-RTC_DATA_ATTR static uint8_t initialized = 0; 
+RTC_DATA_ATTR static uint8_t initialized = 0;
 void app_main() {
     AppSleepInit();
     esp_sleep_wakeup_cause_t wakeupCause = AppSleepGetWakeUpCause();
@@ -35,7 +35,7 @@ void app_main() {
             ESP_LOGI(TAG, "Wake up from sleep timer.\r\n");
             AppSleepLog();
             ESP_LOGI(TAG, "Woke up from timer.");
-            if (AppMqttGetNumoffLineReadingCount() > 0 ) 
+            if (AppMqttGetNumoffLineReadingCount() > 0 )
             {
                 AppWifiStart();
                 AppMqttSendData();

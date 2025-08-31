@@ -7,6 +7,12 @@ static u8g2_t u8g2;
 /* I2C address (0x3C << 1) */
 #define OLED_ADDR 0x78
 
+typedef enum {
+    DISPLAY_TEXT_RANDOM_ANIMAL,
+    DISPLAY_GRAPHICS_NUMBER,
+    DISPLAY_ICON
+} display_mode_t;
+
 static void configure_gpio() {
     gpio_config_t io_conf;
 
@@ -21,6 +27,7 @@ static void configure_gpio() {
     io_conf.pull_up_en = 0;
 
     gpio_set_level(LCD_ENABLE_PIN, 1);
+
     gpio_config(&io_conf);
 }
 
@@ -62,7 +69,7 @@ void AppGraphicsAnimationCycle() {
     AppGraphicsPrintOnOled(-1, -1);
     AppGraphicsClearBuffer();
     vTaskDelay(GRAPHICS_DELAY_MS/portTICK_PERIOD_MS);
-    AppGraphicsPrintOnOled(checkmark_icon, 70);
+    AppGraphicsPrintOnOled(CHECKMARK_ICON, 70);
     vTaskDelay(GRAPHICS_DELAY_MS/portTICK_PERIOD_MS);
     AppGraphicsClearBuffer();
     AppGraphicsCloseDisplay();
@@ -72,7 +79,7 @@ void AppGraphicsAnimationCycle() {
 
 void AppGraphicsPrintDroplet() {
    for (uint32_t i=0; i<100; i+=5){
-       AppGraphicsPrintOnOled(tear_drop, i+29);
+       AppGraphicsPrintOnOled(TEAR_DROP, i+29);
     }
    return;
 }
@@ -88,7 +95,7 @@ void AppGraphicsPrintOnOled(int32_t text, int32_t height) {
 
     else {
         u8g2_SetFont(&u8g2, u8g2_font_open_iconic_all_2x_t);
-        u8g2_DrawGlyph(&u8g2, glpyh_x_coordinate, height, text);
+        u8g2_DrawGlyph(&u8g2, GLPYH_X_COORDINATE, height, text);
    }
    u8g2_SendBuffer(&u8g2);
    u8g2_ClearBuffer(&u8g2);
@@ -102,15 +109,15 @@ void AppGraphicsHandleText(uint32_t text) {
     srand(time(NULL));
     uint32_t mod = (rand() % 10) + 1;
     text = start_address_of_animals + mod;
-    u8g2_DrawGlyph(&u8g2, glpyh_x_coordinate, glyph_y_coordinate, text);
+    u8g2_DrawGlyph(&u8g2, GLPYH_X_COORDINATE, GLYPH_Y_COORDINATE, text);
     return;
 }
 
 void AppGraphicsHandleGraphics(uint32_t text) {
     char string[20];
-    sprintf(string, "%ld", text);
+    sprintf(string, "%u", text);
     u8g2_SetFont(&u8g2, u8g2_font_logisoso16_tr);
-    u8g2_DrawStr(&u8g2, string_x_coordinate, string_y_coordinate, string);
+    u8g2_DrawStr(&u8g2, STRING_X_COORDINATE, STRING_Y_COORDINATE, string);
     return;
 }
 
