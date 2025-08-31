@@ -39,7 +39,7 @@ static void event_handler(void* arg, esp_event_base_t event_base,
         } else {
             xEventGroupSetBits(s_wifi_event_group, WIFI_FAIL_BIT);
         }
-        ESP_LOGI(TAG,"connect to the AP fail");
+        ESP_LOGI(TAG, "connect to the AP fail");
     } else if (event_base == IP_EVENT && event_id == IP_EVENT_STA_GOT_IP) {
         ip_event_got_ip_t* event = (ip_event_got_ip_t*) event_data;
         ESP_LOGI(TAG, "got ip:" IPSTR, IP2STR(&event->ip_info.ip));
@@ -88,7 +88,7 @@ void AppWifiInit(void)
             /* Setting a password implies station will connect to all security modes including WEP/WPA.
              * However these modes are deprecated and not advisable to be used. Incase your Access point
              * doesn't support WPA2, these mode can be enabled by commenting below line */
-	     .threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD,
+	        .threshold.authmode = ESP_WIFI_SCAN_AUTH_MODE_THRESHOLD,
         },
     };
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_STA) );
@@ -118,20 +118,8 @@ void AppWifiInit(void)
     }
 }
 
-void AppWifiDisconnect() {
+void AppWifiDisconnect(void) {
     esp_wifi_disconnect();
     esp_wifi_stop();
     esp_wifi_deinit();
-}
-
-void AppWifiStart(void) {
-    esp_err_t ret = nvs_flash_init();
-    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
-      ESP_ERROR_CHECK(nvs_flash_erase());
-      ret = nvs_flash_init();
-    }
-    ESP_ERROR_CHECK(ret);
-
-    ESP_LOGI(TAG, "ESP_WIFI_MODE_STA");
-    AppWifiInit();
 }

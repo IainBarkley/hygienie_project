@@ -44,6 +44,4 @@
 void AppWifiInit(void);
 
 void AppWifiDisconnect(void);
-
-void AppWifiStart(void);
 #endif
