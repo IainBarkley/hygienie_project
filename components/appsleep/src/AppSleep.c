@@ -11,35 +11,25 @@
 
 static const char *TAG = "AppSleep";
 
-static struct timeval now;
-
-void AppSleepInit() {
+void AppSleepInit(void) {
     AppSleepDeepSleepTimerInit();
     AppSleepWakeUpInit();
 }
 
-void AppSleepGoToDeepSleep() {
+void AppSleepGoToDeepSleep(void) {
     esp_deep_sleep_start();
 }
 
-esp_sleep_wakeup_cause_t AppSleepWakeUpFromDeepSleep() {
-    return AppSleepGetWakeUpCause();
-}
-
-void AppSleepLog() {
-    gettimeofday(&now, NULL);
-}
-
-esp_sleep_wakeup_cause_t AppSleepGetWakeUpCause() {
+esp_sleep_wakeup_cause_t AppSleepGetWakeUpCause(void) {
     return esp_sleep_get_wakeup_cause();
 }
 
-void AppSleepDeepSleepTimerInit() {
+void AppSleepDeepSleepTimerInit(void) {
     uint32_t wakeup_time_sec;
     #ifdef DEEP_SLEEP_TIMER
         wakeup_time_sec = DEEP_SLEEP_TIMER * 60;
     #else
-     /* Default to 10 minutes if DEEP_SLEEP_TIMER is not defined */
+    /* Default to 10 minutes if DEEP_SLEEP_TIMER is not defined */
         wakeup_time_sec = 600;
     #endif
     esp_sleep_enable_timer_wakeup(wakeup_time_sec * 1000000);
@@ -64,9 +54,9 @@ void AppSleepWakeUpInit() {
     /* Configure GPIO 27 as an external wakeup pin */
     esp_sleep_enable_ext0_wakeup(GPIO_WAKEUP_PIN, 0);
 
-   /* Configure power domain to keep RTC peripherals on during deep sleep */
+    /* Configure power domain to keep RTC peripherals on during deep sleep */
     esp_sleep_pd_config(ESP_PD_DOMAIN_RTC_PERIPH, ESP_PD_OPTION_ON);
 
-    // Verify wake-up is configured
+    /* Verify wake-up is configured */
     ESP_LOGI(TAG, "About to enter deep sleep - EXT0 wake-up should be configured");
 }

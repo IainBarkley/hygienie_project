@@ -16,7 +16,6 @@ typedef enum {
 static void configure_gpio() {
     gpio_config_t io_conf;
 
-
     gpio_hold_dis(RST_PIN);
     gpio_hold_dis(PIN_SCL);
     gpio_hold_dis(PIN_SDA);
@@ -27,7 +26,6 @@ static void configure_gpio() {
     io_conf.pull_up_en = 0;
 
     gpio_set_level(LCD_ENABLE_PIN, 1);
-
     gpio_config(&io_conf);
 }
 
@@ -63,7 +61,7 @@ void AppGraphicsAnimationCycle() {
     configure_gpio();
     AppGraphicsInitDisplay();
     AppGraphicsWakeUpDisplay();
-    u8g2_DrawBox(&u8g2, x_upper_left, y_upper_left, width_of_box, height_of_box);
+    u8g2_DrawBox(&u8g2, X_UPPER_LEFT, Y_UPPER_LEFT, WIDTH_OF_BOX, HEIGHT_OF_BOX);
     AppGraphicsPrintDroplet();
     AppGraphicsClearBuffer();
     AppGraphicsPrintOnOled(-1, -1);
@@ -108,7 +106,7 @@ void AppGraphicsHandleText(uint32_t text) {
     /* This displays a random animal by selecting a random number from 1 to 10 */
     srand(time(NULL));
     uint32_t mod = (rand() % 10) + 1;
-    text = start_address_of_animals + mod;
+    text = START_ADDRESS_OF_ANIMALS + mod;
     u8g2_DrawGlyph(&u8g2, GLPYH_X_COORDINATE, GLYPH_Y_COORDINATE, text);
     return;
 }
