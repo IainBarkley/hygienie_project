@@ -53,7 +53,7 @@ void AppGraphicsInitDisplay() {
       ESP_LOGI(TAG, "Driver Connected");
     u8x8_SetI2CAddress(&u8g2.u8x8, OLED_ADDR);
     /* Send init sequence to the display, display is in */
-    u8g2_InitDisplay(&u8g2);  // send init sequence to the display, display is in
+    u8g2_InitDisplay(&u8g2);
   return;
 }
 
@@ -113,7 +113,7 @@ void AppGraphicsHandleText(uint32_t text) {
 
 void AppGraphicsHandleGraphics(uint32_t text) {
     char string[20];
-    sprintf(string, "%u", text);
+    sprintf(string, "%" PRIu32, text);
     u8g2_SetFont(&u8g2, u8g2_font_logisoso16_tr);
     u8g2_DrawStr(&u8g2, STRING_X_COORDINATE, STRING_Y_COORDINATE, string);
     return;

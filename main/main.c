@@ -24,7 +24,7 @@ void app_main() {
         initialized = 1;
        /* It's a good idea to synchronize time after initialization */
         AppGraphicsAnimationCycle();
-        AppWifiStart();
+        AppWifiInit();
         AppMqttInitNTPAndSyncTime();
         AppWifiDisconnect();
         ESP_LOGI(TAG, "System initialized.");
@@ -33,7 +33,6 @@ void app_main() {
 
         case ESP_SLEEP_WAKEUP_TIMER:
             ESP_LOGI(TAG, "Wake up from sleep timer.\r\n");
-            AppSleepLog();
             ESP_LOGI(TAG, "Woke up from timer.");
             if (AppMqttGetNumoffLineReadingCount() > 0 )
             {
@@ -50,7 +49,7 @@ void app_main() {
             AppMqttAddTime();
             AppGraphicsAnimationCycle();
             if (AppMqttGetNumoffLineReadingCount() >= MAX_OFFLINE_READINGS) {
-                AppWifiStart();
+                AppWifiInit();
                 AppMqttSendData();
                 AppMqttInitNTPAndSyncTime();
                 AppWifiDisconnect();
