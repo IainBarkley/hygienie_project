@@ -7,13 +7,10 @@ static u8g2_t u8g2;
 /* I2C address (0x3C << 1) */
 #define OLED_ADDR 0x78
 
-typedef enum {
-    DISPLAY_TEXT_RANDOM_ANIMAL,
-    DISPLAY_GRAPHICS_NUMBER,
-    DISPLAY_ICON
-} display_mode_t;
+typedef enum { DISPLAY_TEXT_RANDOM_ANIMAL, DISPLAY_GRAPHICS_NUMBER, DISPLAY_ICON } display_mode_t;
 
-static void configure_gpio() {
+static void configure_gpio()
+{
     gpio_config_t io_conf;
 
     gpio_hold_dis(RST_PIN);
@@ -37,9 +34,9 @@ static void configure_gpio_for_sleep()
     gpio_hold_en(PIN_SCL);
     gpio_set_level(RST_PIN, 1);
     gpio_hold_en(RST_PIN);
-
 }
-void AppGraphicsInitDisplay() {
+void AppGraphicsInitDisplay()
+{
 
     /* Initialize the I2C bus */
 
@@ -50,14 +47,15 @@ void AppGraphicsInitDisplay() {
     u8g2_esp32_hal_init(u8g2_esp32_hal);
     ESP_LOGD(TAG, "AppGraphics has been configured.");
     u8g2_Setup_ssd1305_i2c_128x32_noname_f(&u8g2, U8G2_R0, u8g2_esp32_i2c_byte_cb, u8g2_esp32_gpio_and_delay_cb);
-      ESP_LOGI(TAG, "Driver Connected");
+    ESP_LOGI(TAG, "Driver Connected");
     u8x8_SetI2CAddress(&u8g2.u8x8, OLED_ADDR);
     /* Send init sequence to the display, display is in */
     u8g2_InitDisplay(&u8g2);
-  return;
+    return;
 }
 
-void AppGraphicsAnimationCycle() {
+void AppGraphicsAnimationCycle()
+{
     configure_gpio();
     AppGraphicsInitDisplay();
     AppGraphicsWakeUpDisplay();
@@ -66,23 +64,25 @@ void AppGraphicsAnimationCycle() {
     AppGraphicsClearBuffer();
     AppGraphicsPrintOnOled(-1, -1);
     AppGraphicsClearBuffer();
-    vTaskDelay(GRAPHICS_DELAY_MS/portTICK_PERIOD_MS);
+    vTaskDelay(GRAPHICS_DELAY_MS / portTICK_PERIOD_MS);
     AppGraphicsPrintOnOled(CHECKMARK_ICON, 70);
-    vTaskDelay(GRAPHICS_DELAY_MS/portTICK_PERIOD_MS);
+    vTaskDelay(GRAPHICS_DELAY_MS / portTICK_PERIOD_MS);
     AppGraphicsClearBuffer();
     AppGraphicsCloseDisplay();
     configure_gpio_for_sleep();
     return;
 }
 
-void AppGraphicsPrintDroplet() {
-   for (uint32_t i=0; i<100; i+=5){
-       AppGraphicsPrintOnOled(TEAR_DROP, i+29);
+void AppGraphicsPrintDroplet()
+{
+    for (uint32_t i = 0; i < 100; i += 5) {
+        AppGraphicsPrintOnOled(TEAR_DROP, i + 29);
     }
-   return;
+    return;
 }
 
-void AppGraphicsPrintOnOled(int32_t text, int32_t height) {
+void AppGraphicsPrintOnOled(int32_t text, int32_t height)
+{
     u8g2_ClearBuffer(&u8g2);
     u8g2_SetDisplayRotation(&u8g2, U8G2_R1);
     if (text == -1)
@@ -94,13 +94,14 @@ void AppGraphicsPrintOnOled(int32_t text, int32_t height) {
     else {
         u8g2_SetFont(&u8g2, u8g2_font_open_iconic_all_2x_t);
         u8g2_DrawGlyph(&u8g2, GLPYH_X_COORDINATE, height, text);
-   }
-   u8g2_SendBuffer(&u8g2);
-   u8g2_ClearBuffer(&u8g2);
-   return;
- }
+    }
+    u8g2_SendBuffer(&u8g2);
+    u8g2_ClearBuffer(&u8g2);
+    return;
+}
 
-void AppGraphicsHandleText(uint32_t text) {
+void AppGraphicsHandleText(uint32_t text)
+{
     u8g2_SetFont(&u8g2, u8g2_font_streamline_pet_animals_t);
 
     /* This displays a random animal by selecting a random number from 1 to 10 */
@@ -111,7 +112,8 @@ void AppGraphicsHandleText(uint32_t text) {
     return;
 }
 
-void AppGraphicsHandleGraphics(uint32_t text) {
+void AppGraphicsHandleGraphics(uint32_t text)
+{
     char string[20];
     sprintf(string, "%" PRIu32, text);
     u8g2_SetFont(&u8g2, u8g2_font_logisoso16_tr);
@@ -119,18 +121,20 @@ void AppGraphicsHandleGraphics(uint32_t text) {
     return;
 }
 
-void AppGraphicsWakeUpDisplay() {
+void AppGraphicsWakeUpDisplay()
+{
     u8g2_SetPowerSave(&u8g2, 0);
     return;
 }
 
-void AppGraphicsCloseDisplay() {
+void AppGraphicsCloseDisplay()
+{
     u8g2_SetPowerSave(&u8g2, 1);
     return;
 }
 
-void AppGraphicsClearBuffer() {
+void AppGraphicsClearBuffer()
+{
     u8g2_ClearBuffer(&u8g2);
     return;
 }
-

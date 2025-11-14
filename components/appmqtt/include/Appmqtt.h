@@ -1,20 +1,20 @@
 #ifndef APPMQTT_H
 #define APPMQTT_H
 
-#include <stdio.h>
-#include <stdlib.h>
+#include "AppData.h"
 #include "AppMqttConfig.h"
+#include "cJSON.h"
+#include "driver/rtc_io.h"
 #include "esp_event.h"
 #include "esp_log.h"
 #include "esp_system.h"
-#include "cJSON.h"
-#include "driver/rtc_io.h"
-#include "soc/rtc.h"
-#include "AppData.h"
-#include "time.h"
 #include "lwip/apps/sntp.h"
 #include "mqtt_client.h"
+#include "soc/rtc.h"
+#include "time.h"
 #include <inttypes.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define NTP_SERVER_1 "pool.ntp.org"
 #define NTP_SERVER_2 "ntp.ubuntu.org"
@@ -45,7 +45,7 @@ void AppMqttInitNTPAndSyncTime(void);
 
 void AppMqttSendData(void);
 
-void AppMqttAddLocalTimeToJSON(cJSON *array, struct tm timeinfo, cJSON*time);
+void AppMqttAddLocalTimeToJSON(cJSON *array, struct tm timeinfo, cJSON *time);
 
 void AppMqttNTPinit(void);
 
