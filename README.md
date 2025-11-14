@@ -1,6 +1,27 @@
 # Hygienie Project
 
-This is the refactored code for hygienie-2022 refactored project that uses the esp-idf framework. This means that source code has been refactored into modules, unit-tests have been written for each module and can be run on the esp32 itself for regression testing, and that project values such as wifi network, password, device id, and sleep duration can be entered in a terminal menu.
+This is the refactored code for  the Hygienie sensor.
+Application Behavior:
+The Hygienie sensor operates in an ultra-low-power mode using ESP32 deep sleep. On first boot, the system initializes all modules (WiFi, MQTT, NTP time sync, LCD graphics) and displays a startup animation. After initialization, the device enters deep sleep and wakes under two conditions:
+
+Timer-based wake-up (ESP_SLEEP_WAKEUP_TIMER):
+
+Wakes at user-configured intervals
+Displays LCD animation
+If offline readings are buffered, connects to WiFi, sends all accumulated data via MQTT, syncs time with NTP server, then disconnects
+Returns to deep sleep
+
+
+External GPIO wake-up (ESP_SLEEP_WAKEUP_EXT0):
+
+Triggered by reed switch on GPIO 27 (detects hygiene event like door opening or dispenser activation)
+Records timestamp of event using AppMqttAddTime()
+Displays LCD animation as visual feedback
+If buffer reaches MAX_OFFLINE_READINGS threshold, immediately connects to WiFi, uploads all data via MQTT, syncs time, then disconnects
+Returns to deep sleep
+
+
+The device maintains event timestamps in RTC memory (survives deep sleep) and only activates WiFi/MQTT when needed, minimizing power consumption. All GPIOs are configured for low-power state before each sleep cycle. This architecture allows the sensor to run on battery power for extended periods while reliably capturing and transmitting hygiene compliance data.This means that source code has been refactored into modules, unit-tests have been written for each module and can be run on the esp32 itself for regression testing, and that project values such as wifi network, password, device id, and sleep duration can be entered in a terminal menu.
 
 
 ## Project layout
@@ -18,24 +39,6 @@ hygienie_project                      — Application project directory
     - main                       — test main directory for test runner
       + hygienie_unit_test.c   — hygienie test runner.
   Makefile / CMakeLists.txt    - Makefiles of the application project
-```
-
-The two projects, main, and test/main, can implement different application behavior when running normally, and when running the unit tests. Top level project is the actual application being developed. Test project included within is a simple application which only runs the unit tests.
-
-## Unit tests for a component
-
-Inside the `testable` component, unit tests are added into `test` directory. `test` directory contains source files of the tests and the component makefile (component.mk / CMakeLists.txt).
-
-```
-unit_test
-  - components                              - Components of the application project
-    - testable
-      - include
-      - test                                - Test directory of the component
-        * component.mk / CMakeLists.txt     - Component makefile of tests
-        * test_mean.c                       - Test source file
-      * component.mk / CMakeLists.txt       - Component makefile
-      * mean.c                              - Component source file
 ```
 
 When the main application project is compiled, tests are not included. Test project includes the tests by setting `TEST_COMPONENTS` variable in the project makefile.
@@ -65,14 +68,11 @@ alias get_idf='. $HOME/esp/esp-idf/export.sh'# Configure the project
 ```
 For the menu_config:
 
-
 For the test project, you can open the project configuration menu (`idf.py menuconfig`) and explore a few options related to Unity under Component Config, Unity unit testing library.
 
 ### Build and flash
 
 As explained above, this example contains two projects: application project and test project.
-
-1. Application project calls an API defined in the component, and displays the results. It is not of much value to run. Application project is provided mainly to illustrate the layout of all the files. If you decide to run this project, the procedure is:
 
     * Run `idf.py -p PORT flash monitor` in the current directory (`unit_test`).
     * Observe the output: a list of random numbers and their mean value.
