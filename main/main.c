@@ -1,46 +1,55 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <esp_intr_types.h>
 #include "esp_system.h"
 #include "testable.h"
 #include "esp_wifi.h"
 #include "driver/adc.h"
 #include "AppGraphics.h"
-#include "appmqtt.h"
+#include "Appmqtt.h"
 #include "AppSleep.h"
 #include "appwifi.h"
 
 static const char *TAG = "App Main";
 RTC_DATA_ATTR static uint8_t initialized = 0;
-
 void app_main() {
-
+    AppSleepInit();
     esp_sleep_wakeup_cause_t wakeupCause = AppSleepGetWakeUpCause();
+    ESP_LOGI(TAG, "Wake-up cause: %" PRIu32, (uint32_t)wakeupCause);
     if (!initialized) {
-        // Perform initialization tasks here (Wi-Fi, peripherals, etc.)
-        initialized = 1; // Mark as initialized
-        // It's a good idea to synchronize time after initialization
-        AppWifiStart();
+        /* Perform initialization tasks here (Wi-Fi, peripherals, etc.) */
+        ESP_LOGI(TAG, "Initialization values: %" PRIu8, initialized);
+        ESP_LOGI(TAG, "System initializing...");
+        /* Perform initialization tasks here (Wi-Fi, peripherals, etc.) */
+        initialized = 1;
+       /* It's a good idea to synchronize time after initialization */
+        AppGraphicsAnimationCycle();
+        AppWifiInit();
         AppMqttInitNTPAndSyncTime();
         AppWifiDisconnect();
+        ESP_LOGI(TAG, "System initialized.");
     }
     switch (wakeupCause) {
 
         case ESP_SLEEP_WAKEUP_TIMER:
-            AppSleepLog();
-            if (AppMqttGetNumoffLineReadingCount() > 0 ) {
-                AppWifiStart();
+            ESP_LOGI(TAG, "Wake up from sleep timer.\r\n");
+            ESP_LOGI(TAG, "Woke up from timer.");
+            if (AppMqttGetNumoffLineReadingCount() > 0 )
+            {
+                AppWifiInit();
                 AppMqttSendData();
                 AppMqttInitNTPAndSyncTime();
                 AppWifiDisconnect();
+                ESP_LOGI(TAG, "Data sent after wake up.");
             }
             break;
 
-        case ESP_SLEEP_WAKEUP_TOUCHPAD:
-            ESP_LOGI(TAG, "Wake up from touch on pad %d\n", esp_sleep_get_touchpad_wakeup_status());
+         case ESP_SLEEP_WAKEUP_EXT0:
+            ESP_LOGI(TAG, "Wake up from external GPIO 27 (reed switch)");
             AppMqttAddTime();
             AppGraphicsAnimationCycle();
             if (AppMqttGetNumoffLineReadingCount() >= MAX_OFFLINE_READINGS) {
-                AppWifiStart();
+                AppWifiInit();
                 AppMqttSendData();
                 AppMqttInitNTPAndSyncTime();
                 AppWifiDisconnect();
@@ -48,12 +57,14 @@ void app_main() {
             break;
 
         case ESP_SLEEP_WAKEUP_UNDEFINED:
-            ESP_LOGI(TAG, "Not a deep sleep or a touch wake_up\n");
+            ESP_LOGE(TAG, "Error: Unhandled wake up cause: %" PRIu32, (uint32_t)wakeupCause);
             break;
         default:
             ESP_LOGI(TAG, "ERROR with wake up cause\n");
     }
-    AppSleepInit();
+    ESP_LOGI(TAG, "Going to Sleep\r\n");
+
+    AppSleepConfigureGpioForSleep();
     AppSleepGoToDeepSleep();
 }
 

@@ -9,33 +9,15 @@
 #include "freertos/task.h"
 #include "esp_sleep.h"
 #include "esp_log.h"
-#include "driver/adc.h"
 #include "driver/rtc_io.h"
 #include "soc/rtc.h"
+#include <inttypes.h>
 
-#if CONFIG_IDF_TARGET_ESP32
-#include "esp32/ulp.h"
-#elif CONFIG_IDF_TARGET_ESP32S2
-#include "esp32s2/ulp.h"
-#elif CONFIG_IDF_TARGET_ESP32S3
-#include "esp32s3/ulp.h"
-#endif
 
-#define DEFAULT_TOUCH_THRESHOLD 70
-#define TOUCH_THRESH_NO_USE 0
-#if SOC_TOUCH_SENSOR_NUM > 0
 #include "soc/sens_periph.h"
-#include "driver/touch_pad.h"
-#endif
 
 #ifdef CONFIG_DEEP_SLEEP_TIMER
 #define DEEP_SLEEP_TIMER CONFIG_DEEP_SLEEP_TIMER
-#endif
-
-#ifdef CONFIG_TOUCH_THRESHOLD
-#define TOUCH_THRESHOLD CONFIG_TOUCH_THRESHOLD
-#else
-#define TOUCH_THRESHOLD DEFAULT_TOUCH_THRESHOLD
 #endif
 
 #ifdef CONFIG_IDF_TARGET_ESP32C3
@@ -51,7 +33,6 @@
 #if CONFIG_IDF_TARGET_ESP32
 
 // Adding RTC_DATA_ATTR for sleep enter time for a later time
-static RTC_DATA_ATTR struct timeval sleep_enter_time;
 /*
  * Offset (in 32-bit words) in RTC Slow memory where the data is placed
  * by the ULP coprocessor. It can be chosen to be any value greater or equal
@@ -79,7 +60,7 @@ static RTC_DATA_ATTR struct timeval sleep_enter_time;
  */
 static inline uint16_t ulp_data_read(size_t offset)
 {
-    return RTC_SLOW_MEM[ULP_DATA_OFFSET + offset] & 0xffff;
+    return RTC_SLOW_ATTR[ULP_DATA_OFFSET + offset] & 0xffff;
 }
 
 /**
@@ -90,7 +71,7 @@ static inline uint16_t ulp_data_read(size_t offset)
  */
 static inline void ulp_data_write(size_t offset, uint16_t value)
 {
-    RTC_SLOW_MEM[ULP_DATA_OFFSET + offset] = value;
+    RTC_SLOW_ATTR[ULP_DATA_OFFSET + offset] = value;
 }
 #endif // CONFIG_IDF_TARGET_ESP32
 #endif // CONFIG_EXAMPLE_ULP_TEMPERATURE_WAKEUP
