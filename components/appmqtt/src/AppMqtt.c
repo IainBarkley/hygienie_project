@@ -1,0 +1,233 @@
+#include "AppMqtt.h"
+#include "sys/time.h"
+#include "time.h"
+
+static const char *TAG = "mqtt";
+
+static RTC_DATA_ATTR struct timeval current_time;
+static RTC_DATA_ATTR time_t now;
+
+static RTC_DATA_ATTR struct Sanitizer_Data sanitizer_data = {.pump_initialized = false,
+                                                             .device_name = DEVICE_NAME,
+                                                             .device_id = DEVICE_ID,
+                                                             .max_offline_readings = MAX_OFFLINE_READINGS,
+                                                             .bootCount = 10,
+                                                             .offlineReadingCount = 0};
+
+static const esp_mqtt_client_config_t mqtt_cfg = {.broker.address.uri = MQTT_IP_ADDRESS_WITH_PORT,
+                                                  .credentials.username = MQTT_USERNAME,
+                                                  .credentials.client_id = MQTT_CLIENT_ID,
+                                                  .credentials.authentication.password = MQTT_PASSWORD};
+
+static esp_mqtt_client_handle_t client;
+
+static void mqtt_event_handler(void *handler_args, esp_event_base_t base, int32_t event_id, void *event_data)
+{
+
+    ESP_LOGD(TAG, "Event dispatched from event loop base=%s, event_id=%d", base, event_id);
+    esp_mqtt_event_handle_t event = event_data;
+    esp_mqtt_client_handle_t event_client = event->client;
+    int msg_id;
+    switch ((esp_mqtt_event_id_t)event_id) {
+    case MQTT_EVENT_CONNECTED:
+        ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
+        msg_id = esp_mqtt_client_subscribe(event_client, "v1/devices/me/telemetry", 0);
+        ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+
+        msg_id = esp_mqtt_client_subscribe(event_client, "v1/devices/me/telemetry", 1);
+        ESP_LOGI(TAG, "sent subscribe successful, msg_id=%d", msg_id);
+
+        msg_id = esp_mqtt_client_unsubscribe(event_client, "v1/devices/me/telemetry/qos1");
+        ESP_LOGI(TAG, "sent unsubscribe successful, msg_id=%d", msg_id);
+        break;
+    case MQTT_EVENT_DISCONNECTED:
+        ESP_LOGI(TAG, "MQTT_EVENT_DISCONNECTED");
+        break;
+
+    case MQTT_EVENT_SUBSCRIBED:
+        ESP_LOGI(TAG, "MQTT_EVENT_SUBSCRIBED, msg_id=%d", event->msg_id);
+        msg_id = esp_mqtt_client_publish(event_client, "v1/devices/me/telemetry", "data", 0, 0, 0);
+        ESP_LOGI(TAG, "sent publish successful, msg_id=%d", msg_id);
+        break;
+    case MQTT_EVENT_UNSUBSCRIBED:
+        ESP_LOGI(TAG, "MQTT_EVENT_UNSUBSCRIBED, msg_id=%d", event->msg_id);
+        break;
+    case MQTT_EVENT_PUBLISHED:
+        ESP_LOGI(TAG, "MQTT_EVENT_PUBLISHED, msg_id=%d", event->msg_id);
+        break;
+    case MQTT_EVENT_DATA:
+        ESP_LOGI(TAG, "MQTT_EVENT_DATA");
+        break;
+    case MQTT_EVENT_ERROR:
+        ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
+        if (event->error_handle->error_type == MQTT_ERROR_TYPE_TCP_TRANSPORT) {
+            ESP_LOGI(TAG, "Last error code reported from esp-tls: 0x%" PRIx32 "",
+                     event->error_handle->esp_tls_last_esp_err);
+            ESP_LOGI(TAG, "Last tls stack error number: 0x%" PRIx32 "", event->error_handle->esp_tls_stack_err);
+            ESP_LOGI(TAG, "Last captured errno : %" PRId32 " (%s)", event->error_handle->esp_transport_sock_errno,
+                     strerror(event->error_handle->esp_transport_sock_errno));
+        } else if (event->error_handle->error_type == MQTT_ERROR_TYPE_CONNECTION_REFUSED) {
+            ESP_LOGI(TAG, "Connection refused error: 0x%" PRIx32 "", event->error_handle->connect_return_code);
+        } else {
+            ESP_LOGW(TAG, "Unknown error type: 0x%" PRIx32 "", event->error_handle->error_type);
+        }
+        break;
+    default:
+        ESP_LOGI(TAG, "Other event id:%" PRIu32 "", event->event_id);
+        break;
+    }
+}
+
+void AppMqttInit()
+{
+    esp_log_level_set("MQTT_CLIENT", ESP_LOG_VERBOSE);
+    client = esp_mqtt_client_init(&mqtt_cfg);
+    ESP_LOGI(TAG, "[APP] Free memory: %" PRIu32 " bytes", esp_get_free_heap_size());
+    esp_mqtt_client_register_event(client, ESP_EVENT_ANY_ID, mqtt_event_handler, NULL);
+    esp_mqtt_client_start(client);
+}
+
+void AppMqttDestroy()
+{
+    esp_mqtt_client_destroy(client);
+}
+
+void AppMqttCreateJson()
+{
+
+    cJSON *root = cJSON_CreateObject();
+    cJSON_AddStringToObject(root, "DEVICE_NAME", sanitizer_data.device_name);
+    cJSON_AddStringToObject(root, "DEVICE_ID", sanitizer_data.device_id);
+    cJSON *array = cJSON_CreateArray();
+    for (uint32_t i = 0; i < AppMqttGetNumoffLineReadingCount(); i++) {
+        cJSON_AddItemToObject(array,
+                              "Time Recorded:", cJSON_CreateNumber((uint32_t)sanitizer_data.time_stamp_seconds[i]));
+    }
+    cJSON_AddItemToObject(root, "TimeStamps", array);
+    char *json_str = cJSON_Print(root);
+    AppMqttPublish(json_str);
+    AppMqttDestroyJson(root);
+    free(json_str);
+}
+
+void AppMqttAddTime(void)
+{
+    gettimeofday(&current_time, NULL); /* Get the current time */
+
+    /* Get the current time as a Unix timestamp (seconds since the Epoch) */
+    time(&now);
+
+    /* Print the current UTC time in seconds */
+    ESP_LOGI(TAG, "Current UTC time in seconds: %" PRIu64 "\n", (uint64_t)now);
+
+    /* Store the UTC timestamp */
+    sanitizer_data.time_stamp_seconds[sanitizer_data.offlineReadingCount] = current_time.tv_sec;
+    ESP_LOGI(TAG, "Stored timestamp: %" PRIu64 "\n",
+             (uint64_t)sanitizer_data.time_stamp_seconds[sanitizer_data.offlineReadingCount]);
+
+    /* Increment the count of readings */
+    AppMqttIncrementOfflineReadingCount();
+}
+
+void AppMqttClearTimeStamps(void)
+{
+    for (int32_t i = 0; i < sanitizer_data.max_offline_readings; i++) {
+        memset(&sanitizer_data.readings_temp[i], 0, sizeof(struct tm));
+        sanitizer_data.time_stamp_seconds[i] = 0;
+    }
+}
+
+void AppMqttIncrementOfflineReadingCount(void)
+{
+    sanitizer_data.offlineReadingCount++;
+}
+
+void AppMqttResetOfflineReadingCount(void)
+{
+    sanitizer_data.offlineReadingCount = 0;
+}
+
+uint8_t AppMqttGetNumoffLineReadingCount(void)
+{
+    uint8_t off_line_count = sanitizer_data.offlineReadingCount;
+    ESP_LOGI(TAG, "Offline Reading Count: %" PRIu8, off_line_count);
+    return off_line_count;
+}
+
+void AppMqttDestroyJson(cJSON *root)
+{
+    cJSON_Delete(root);
+}
+
+void AppMqttPublish(char *json_str)
+{
+    esp_mqtt_client_publish(client, "v1/devices/me/telemetry", json_str, strlen(json_str), 0, 0);
+    vTaskDelay(pdMS_TO_TICKS(500));
+}
+
+void AppMqttSetOffineReadingCount(uint32_t offlineReadingCount)
+{
+    sanitizer_data.offlineReadingCount = offlineReadingCount;
+}
+
+void AppMqttInitNTPAndSyncTime(void)
+{
+    AppMqttNTPinit();
+    AppMqttSyncTime();
+}
+
+void AppMqttSendData(void)
+{
+    AppMqttInit();
+    AppMqttCreateJson();
+    AppMqttClearTimeStamps();
+    AppMqttResetOfflineReadingCount();
+    AppMqttDestroy();
+}
+
+void AppMqttAddLocalTimeToJSON(cJSON *array, struct tm timeinfo, cJSON *time)
+{
+
+    cJSON_AddNumberToObject(time, "tm_sec", timeinfo.tm_sec);
+    cJSON_AddNumberToObject(time, "tm_min", timeinfo.tm_min);
+    cJSON_AddNumberToObject(time, "tm_hour", timeinfo.tm_hour);
+    cJSON_AddNumberToObject(time, "tm_mday", timeinfo.tm_mday);
+    cJSON_AddNumberToObject(time, "tm_mon", timeinfo.tm_mon);
+    cJSON_AddNumberToObject(time, "tm_year", timeinfo.tm_year);
+    cJSON_AddNumberToObject(time, "tm_wday", timeinfo.tm_wday);
+    cJSON_AddNumberToObject(time, "tm_yday", timeinfo.tm_yday);
+    cJSON_AddNumberToObject(time, "tm_isdst", timeinfo.tm_isdst);
+    cJSON_AddItemToArray(array, time);
+}
+
+void AppMqttNTPinit(void)
+{
+    sntp_setoperatingmode(SNTP_OPMODE_POLL);
+    sntp_setservername(0, NTP_SERVER_1);
+    sntp_setservername(1, NTP_SERVER_2);
+    sntp_init();
+}
+
+void AppMqttSyncTime(void)
+{
+    time_t sync_time = 0;
+    struct tm sync_timeinfo = {0};
+    int sync_retry = 0;
+    const uint8_t retry_count = 10;
+
+    while (sync_timeinfo.tm_year < (2025 - 1900) && ++sync_retry < retry_count) {
+        ESP_LOGI(TAG, "Waiting for system time to be set... (%" PRIu32 "/%" PRIu32 ")", sync_retry, retry_count);
+        vTaskDelay(pdMS_TO_TICKS(2000));
+        time(&sync_time);
+        char buf[64];
+        localtime_r(&sync_time, &sync_timeinfo);
+        strftime(buf, sizeof(buf), "%Y-%m-%d %H:%M:%S", &sync_timeinfo);
+        ESP_LOGI(TAG, "Current system time is: %s\n", buf);
+    }
+
+    if (sync_timeinfo.tm_year < (2025 - 1900)) {
+        ESP_LOGE(TAG, "Failed to set system time using NTP");
+    } else {
+        ESP_LOGI(TAG, "System time is set using NTP");
+    }
+}
