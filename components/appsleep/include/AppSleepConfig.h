@@ -1,18 +1,17 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <time.h>
-#include <sys/time.h>
-#include "sdkconfig.h"
-#include "soc/soc_caps.h"
+#include "driver/rtc_io.h"
+#include "esp_log.h"
+#include "esp_sleep.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "esp_sleep.h"
-#include "esp_log.h"
-#include "driver/rtc_io.h"
+#include "sdkconfig.h"
 #include "soc/rtc.h"
+#include "soc/soc_caps.h"
 #include <inttypes.h>
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/time.h>
+#include <time.h>
 
 #include "soc/sens_periph.h"
 
@@ -21,11 +20,11 @@
 #endif
 
 #ifdef CONFIG_IDF_TARGET_ESP32C3
-#define DEFAULT_WAKEUP_PIN      CONFIG_EXAMPLE_GPIO_WAKEUP_PIN
+#define DEFAULT_WAKEUP_PIN CONFIG_EXAMPLE_GPIO_WAKEUP_PIN
 #ifdef CONFIG_EXAMPLE_GPIO_WAKEUP_HIGH_LEVEL
-#define DEFAULT_WAKEUP_LEVEL    ESP_GPIO_WAKEUP_GPIO_HIGH
+#define DEFAULT_WAKEUP_LEVEL ESP_GPIO_WAKEUP_GPIO_HIGH
 #else
-#define DEFAULT_WAKEUP_LEVEL    ESP_GPIO_WAKEUP_GPIO_LOW
+#define DEFAULT_WAKEUP_LEVEL ESP_GPIO_WAKEUP_GPIO_LOW
 #endif
 #endif
 
@@ -39,7 +38,7 @@
  * to ULP program size, and less than the CONFIG_ESP32_ULP_COPROC_RESERVE_MEM/4 - 6,
  * where 6 is the number of words used by the ULP coprocessor.
  */
-#define ULP_DATA_OFFSET    0
+#define ULP_DATA_OFFSET 0
 
 // TODO: Add ULP temperature monitoring program to Appsleep module.
 /**
@@ -50,7 +49,7 @@
  * the temperature goes lower or higher than certain thresholds.
  */
 // TODO: Add ULP temperature monitoring program to Appsleep module. Will comment out until feature is needed.
-//static void start_ulp_temperature_monitoring(void);
+// static void start_ulp_temperature_monitoring(void);
 
 /**
  * @brief Utility function which reads data written by ULP program
@@ -82,4 +81,3 @@ static inline void ulp_data_write(size_t offset, uint16_t value)
 #endif
 #endif
 #endif
-
