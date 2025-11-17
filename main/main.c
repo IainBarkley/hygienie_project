@@ -34,7 +34,6 @@ void app_main()
 
     case ESP_SLEEP_WAKEUP_TIMER:
         ESP_LOGI(TAG, "Wake up from sleep timer.\r\n");
-        ESP_LOGI(TAG, "Woke up from timer.");
         if (AppMqttGetNumoffLineReadingCount() > 0) {
             AppWifiInit();
             AppMqttSendData();
