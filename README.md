@@ -4,20 +4,20 @@ This is the refactored code for  the Hygienie sensor.
 ## Application Behavior:
 The Hygienie sensor operates in an ultra-low-power mode using ESP32 deep sleep. On first boot, the system initializes all modules (WiFi, MQTT, NTP time sync, LCD graphics) and displays a startup animation. After initialization, the device enters deep sleep and wakes under two conditions:
 
-### Timer-based wake-up (ESP_SLEEP_WAKEUP_TIMER):
+#### Timer-based wake-up (ESP_SLEEP_WAKEUP_TIMER):
 
--- Wakes at user-configured intervals
--- Displays LCD animation
--- If offline readings are buffered, connects to WiFi, sends all accumulated timestamps via MQTT, syncs time with NTP server, then disconnects
--- Returns to deep sleep
+- Wakes at user-configured intervals
+- Displays LCD animation
+- If offline readings are buffered, connects to WiFi, sends all accumulated timestamps via MQTT, syncs time with NTP server, then disconnects
+- Returns to deep sleep
 
-### External GPIO wake-up (ESP_SLEEP_WAKEUP_EXT0):
+#### External GPIO wake-up (ESP_SLEEP_WAKEUP_EXT0):
 
--- Triggered by reed switch on GPIO 27 (detects hygiene event like door opening or dispenser activation)
--- Records timestamp of event using AppMqttAddTime()
--- Displays LCD animation as visual feedback
--- If buffer reaches MAX_OFFLINE_READINGS threshold, immediately connects to WiFi, uploads all data via MQTT, syncs time, then disconnects
--- Returns to deep sleep
+- Triggered by reed switch on GPIO 27 (detects hygiene event like door opening or dispenser activation)
+- Records timestamp of event using AppMqttAddTime()
+- Displays LCD animation as visual feedback
+- If buffer reaches MAX_OFFLINE_READINGS threshold, immediately connects to WiFi, uploads all data via MQTT, syncs time, then disconnects
+- Returns to deep sleep
 
 
 The device maintains event timestamps in RTC memory (survives deep sleep) and only activates WiFi/MQTT when needed, minimizing power consumption. All GPIOs are configured for low-power state before each sleep cycle. This architecture allows the sensor to run on battery power for extended periods while reliably capturing and transmitting hygiene compliance data.This means that source code has been refactored into modules, unit-tests have been written for each module and can be run on the esp32 itself for regression testing, and that project values such as wifi network, password, device id, and sleep duration can be entered in a terminal menu.
